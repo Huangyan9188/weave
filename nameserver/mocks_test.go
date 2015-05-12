@@ -75,6 +75,10 @@ func (mz *mockedZoneWithRecords) AddRecord(ident string, name string, ip net.IP)
 	notImplWarn()
 	return nil
 }
+func (mz *mockedZoneWithRecords) DeleteRecords(ident *string, ip *net.IP, name *string) int {
+	notImplWarn()
+	return 0
+}
 func (mz *mockedZoneWithRecords) DeleteRecord(ident string, ip net.IP) error {
 	notImplWarn()
 	return nil

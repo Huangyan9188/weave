@@ -18,6 +18,7 @@ var rdnsDomainLen = len(RDNSDomain) + 1
 
 type Zone interface {
 	AddRecord(ident string, name string, ip net.IP) error
+	DeleteRecords(ident *string, ip *net.IP, name *string) (count int)
 	DeleteRecord(ident string, ip net.IP) error
 	DeleteRecordsFor(ident string) error
 	Domain() string
@@ -119,6 +120,37 @@ func (zone *ZoneDb) AddRecord(ident string, name string, ip net.IP) error {
 	}
 	zone.recs = append(zone.recs, dbRecord{ident, fqdn, ip})
 	return nil
+}
+
+func (zone *ZoneDb) DeleteRecords(ident *string, ip *net.IP, name *string) (count int) {
+	zone.mx.Lock()
+	defer zone.mx.Unlock()
+
+	var fqdn *string
+	if name != nil {
+		temp := dns.Fqdn(*name)
+		fqdn = &temp
+	}
+
+	match := func(r dbRecord) bool {
+		return (ident == nil || r.Ident == *ident) &&
+			(ip == nil || r.IP.Equal(*ip)) &&
+			(fqdn == nil || r.Name == *fqdn)
+	}
+
+	w := 0 // write index
+
+	for _, r := range zone.recs {
+		if !match(r) {
+			zone.recs[w] = r
+			w++
+		}
+	}
+
+	count = len(zone.recs) - w
+	zone.recs = zone.recs[:w]
+
+	return
 }
 
 func (zone *ZoneDb) DeleteRecord(ident string, ip net.IP) error {
